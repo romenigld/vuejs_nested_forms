@@ -12,6 +12,7 @@ document.addEventListener('turbolinks:load', () => {
 
   if (element != null){
 
+    var id = element.dataset.id
     var team = JSON.parse(element.dataset.team)
     var players_attributes = JSON.parse(element.dataset.playersAttributes)
     players_attributes.forEach(function(player) { player._destroy = null })
@@ -20,11 +21,11 @@ document.addEventListener('turbolinks:load', () => {
     var app = new Vue({
       el: element,
       data: function() {
-        return { team: team }
+        return { id: id, team: team }
       },
       methods: {
         addPlayer: function() {
-          team.players_attributes.push({
+          this.team.players_attributes.push({
             id: null,
             name: "",
             // position: "",
@@ -33,7 +34,40 @@ document.addEventListener('turbolinks:load', () => {
         },
 
         removePlayer: function(index) {
-          this.team.players_attributes.splice(index, 1)
+          var player = this.team.players_attributes[index]
+
+          if(player.id == null) {
+            this.team.players_attributes.splice(index, 1)
+          } else {
+            this.team.players_attributes[index]._destroy = "1"
+          }
+        },
+
+        undoRemove: function(index){
+          this.team.players_attributes[index]._destroy = null
+        },
+
+        saveTeam: function() {
+          // Create a new team
+          if (this.id == null) {
+            this.$http.post('/teams', { team: this.team }).then(response => {
+              Turbolinks.visit(`/teams/${response.body.id}`)
+            }, response => {
+              console.log(response)
+            })
+            // Edit an existing team
+          } else {
+
+            this.$http.put(`/teams/${this.id}`, { team: this.team }).then(response => {
+              Turbolinks.visit(`/teams/${response.body.id}`)
+            }, response => {
+              console.log(response)
+            })
+          }
+        },
+
+        existingTeam: function() {
+          return this.team.id != null
         }
       }
     });
